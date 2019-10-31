@@ -1090,7 +1090,7 @@ try:
     # = Extrusion along a path =
     # = ---------------------- =
     # Possible: twist
-    def extrude_along_path(shape_pts, path_pts, scale_factors=None):
+    def extrude_along_path(shape_pts, path_pts, scale_factors=None, convexity=10):
         # Extrude the convex curve defined by shape_pts along path_pts.
         # -- For predictable results, shape_pts must be planar, convex, and lie
         # in the XY plane centered around the origin.
@@ -1178,7 +1178,7 @@ try:
             for i in range(end_cap_base + 1, len(polyhedron_pts) - 1):
                 facet_indices.append([end_cap_base, i + 1, i])
 
-        return polyhedron(points=euc_to_arr(polyhedron_pts), faces=facet_indices)
+        return polyhedron(points=euc_to_arr(polyhedron_pts), faces=facet_indices, convexity=convexity)
 
 
 except Exception as e:
