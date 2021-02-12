@@ -12,6 +12,7 @@ SolidPython
 -  `Advantages <#advantages>`__
 -  `Installing SolidPython <#installing-solidpython>`__
 -  `Using SolidPython <#using-solidpython>`__
+-  `Importing OpenSCAD Code <#importing-openscad-code>`__
 -  `Example Code <#example-code>`__
 -  `Extra syntactic sugar <#extra-syntactic-sugar>`__
 
@@ -25,16 +26,14 @@ SolidPython
    -  `Directions: (up, down, left, right, forward, back) for arranging
       things: <#directions-up-down-left-right-forward-back-for-arranging-things>`__
    -  `Arcs <#arcs>`__
-   -  `Offsets <#offsets>`__
    -  `Extrude Along Path <#extrude_along_path>`__
-   -  `Basic color library <#basic-color-library>`__
    -  `Bill Of Materials <#bill-of-materials>`__
 
 -  `solid.screw\_thread <#solidscrew_thread>`__
+-  `solid.splines <#solidsplines>`__
+-  `Jupyter Renderer <#jupyter-renderer>`__
 -  `Contact <#contact>`__
 -  `License <#license>`__
-
-**Table of Contents** generated with `DocToc <http://doctoc.herokuapp.com/>`__
 
 SolidPython: OpenSCAD for Python
 ================================
@@ -47,7 +46,7 @@ simple example:
 
 This Python code:
 
-::
+.. code:: python
 
     from solid import *
     d = difference()(
@@ -58,7 +57,7 @@ This Python code:
 
 Generates this OpenSCAD code:
 
-::
+.. code:: python
 
     difference(){
         cube(10);
@@ -68,7 +67,7 @@ Generates this OpenSCAD code:
 That doesn't seem like such a savings, but the following SolidPython
 code is a lot shorter (and I think clearer) than the SCAD code it compiles to:
 
-::
+.. code:: python
 
     from solid import *
     from solid.utils import *
@@ -76,7 +75,7 @@ code is a lot shorter (and I think clearer) than the SCAD code it compiles to:
 
 Generates this OpenSCAD code:
 
-::
+.. code::
 
     difference(){
         union(){
@@ -102,54 +101,43 @@ or impossible in pure OpenSCAD. Among these are:
 Installing SolidPython
 ======================
 
--  Install via
+-  Install latest release via
    `PyPI <https://pypi.python.org/pypi/solidpython>`__:
 
-   ::
+   .. code:: bash
 
        pip install solidpython
 
    (You may need to use ``sudo pip install solidpython``, depending on
-   your environment. This is commonly discouraged though.)
+   your environment. This is commonly discouraged though. You'll be happiest 
+   working in a `virtual environment <https://docs.python.org/3/tutorial/venv.html>`__ 
+   where you can easily control dependencies for a given project)
 
--  **OR:** Download SolidPython (Click
-   `here <https://github.com/SolidCode/SolidPython/archive/master.zip>`__
-   to download directly, or use git to pull it all down)
+- Install current master straight from Github:
 
-   (Note that SolidPython also depends on the
-   `PyEuclid <http://pypi.python.org/pypi/euclid3>`__ Vector math
-   library, installable via ``pip install euclid3``)
+  .. code:: bash
 
-   -  Unzip the file, probably in ~/Downloads/SolidPython-master
-   -  In a terminal, cd to location of file:
-
-      ::
-
-          cd ~/Downloads/SolidPython-master
-
-   -  Run the install script:
-
-      ::
-
-          python setup.py install
+      pip install git+https://github.com/SolidCode/SolidPython.git
 
 Using SolidPython
 =================
 
 -  Include SolidPython at the top of your Python file:
 
-   ::
+   .. code:: python
 
        from solid import *
        from solid.utils import *  # Not required, but the utils module is useful
 
--  To include other scad code, call ``use("/path/to/scadfile.scad")`` or
-   ``include("/path/to/scadfile.scad")``. This is identical to what you
-   would do in OpenSCAD.
--  OpenSCAD uses curly-brace blocks ({}) to create its tree. SolidPython
-   uses parentheses with comma-delimited lists. **OpenSCAD:**
+   (See `this issue <https://github.com/SolidCode/SolidPython/issues/114>`__ for 
+   a discussion of other import styles
 
-   ::
+-  OpenSCAD uses curly-brace blocks ({}) to create its tree. SolidPython
+   uses parentheses with comma-delimited lists. 
+   
+   **OpenSCAD:**
+
+   .. code::
 
        difference(){
            cube(10);
@@ -158,7 +146,7 @@ Using SolidPython
 
    **SolidPython:**
 
-   ::
+   .. code::
 
        d = difference()(
            cube(10),  # Note the comma between each element!
@@ -167,14 +155,79 @@ Using SolidPython
 
 -  Call ``scad_render(py_scad_obj)`` to generate SCAD code. This returns
    a string of valid OpenSCAD code.
--  *or*: call ``scad_render_to_file(py_scad_obj, filepath)`` to store
+-  *or*: call ``scad_render_to_file(py_scad_obj, filepath.scad)`` to store
    that code in a file.
--  If 'filepath' is open in the OpenSCAD IDE and Design => 'Automatic
-   Reload and Compile' is checked (in the OpenSCAD IDE), calling
+-  If ``filepath.scad`` is open in the OpenSCAD IDE and Design => 'Automatic
+   Reload and Compile' is checked in the OpenSCAD IDE, running
    ``scad_render_to_file()`` from Python will load the object in the
    IDE.
 -  Alternately, you could call OpenSCAD's command line and render
    straight to STL.
+
+Importing OpenSCAD code
+=======================
+
+- Use ``solid.import_scad(path)`` to import OpenSCAD code. Relative paths will 
+check current location designated `OpenSCAD library directories <https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Libraries>`.
+
+**Ex:** 
+
+``scadfile.scad``
+
+.. code::
+
+    module box(w,h,d){
+        cube([w,h,d]);
+    }
+
+``your_file.py``
+
+.. code:: python
+
+    from solid import *
+
+    scadfile = import_scad('/path/to/scadfile.scad') 
+    b = scadfile.box(2,4,6)
+    scad_render_to_file(b, 'out_file.scad')
+
+- Recursively import OpenSCAD code by calling ``import_scad()`` with a directory argument.
+
+.. code:: python
+
+    from solid import *
+
+    # MCAD is OpenSCAD's most common utility library: https://github.com/openscad/MCAD
+    # If it's installed for OpenSCAD (on MacOS, at: ``$HOME/Documents/OpenSCAD/libraries``)
+    mcad = import_scad('MCAD')
+
+    # MCAD contains about 15 separate packages, each included as its own namespace
+    print(dir(mcad)) # => ['bearing', 'bitmap', 'boxes', etc...]
+    mount = mcad.motors.stepper_motor_mount(nema_standard=17)
+    scad_render_to_file(mount, 'motor_mount_file.scad')
+
+- OpenSCAD has the ``use()`` and ``include()`` statements for importing SCAD code, and SolidPython has them, too. They pollute the global namespace, though, and you may have better luck with ``import_scad()``,
+
+**Ex:**
+
+``scadfile.scad``
+
+.. code::
+
+    module box(w,h,d){
+        cube([w,h,d]);
+    }
+
+``your_file.py``
+
+.. code:: python
+
+    from solid import *
+
+    # use() puts the module `box()` into the global namespace
+    use('/path/to/scadfile.scad') 
+    b = box(2,4,6)
+    scad_render_to_file(b, 'out_file.scad')
+
 
 Example Code
 ============
@@ -183,9 +236,9 @@ The best way to learn how SolidPython works is to look at the included
 example code. If you've installed SolidPython, the following line of
 Python will print(the location of ) the examples directory:
 
-::
+.. code:: python
 
-        import os, solid; print(os.path.dirname(solid.__file__) + '/examples')
+    import os, solid; print(os.path.dirname(solid.__file__) + '/examples')
         
 
 Or browse the example code on Github
@@ -204,13 +257,13 @@ Basic operators
 Following Elmo Mäntynen's suggestion, SCAD objects override the basic
 operators + (union), - (difference), and \* (intersection). So
 
-::
+.. code:: python
 
     c = cylinder(r=10, h=5) + cylinder(r=2, h=30)
 
 is the same as:
 
-::
+.. code:: python
 
     c = union()(
         cylinder(r=10, h=5),
@@ -219,14 +272,14 @@ is the same as:
 
 Likewise:
 
-::
+.. code:: python
 
     c = cylinder(r=10, h=5)
     c -= cylinder(r=2, h=30)
 
 is the same as:
 
-::
+.. code:: python
 
     c = difference()(
         cylinder(r=10, h=5),
@@ -251,7 +304,7 @@ structure.
 
 Example:
 
-::
+.. code:: python
 
     outer = cylinder(r=pipe_od, h=seg_length)
     inner = cylinder(r=pipe_id, h=seg_length)
@@ -287,7 +340,7 @@ Currently these include:
 Directions: (up, down, left, right, forward, back) for arranging things:
 ------------------------------------------------------------------------
 
-::
+.. code:: python
 
     up(10)(
         cylinder()
@@ -295,7 +348,7 @@ Directions: (up, down, left, right, forward, back) for arranging things:
 
 seems a lot clearer to me than:
 
-::
+.. code:: python
 
     translate( [0,0,10])(
         cylinder()
@@ -310,34 +363,19 @@ Arcs
 
 I've found this useful for fillets and rounds.
 
-::
+.. code:: python
 
     arc(rad=10, start_degrees=90, end_degrees=210)
 
 draws an arc of radius 10 counterclockwise from 90 to 210 degrees.
 
-::
+.. code:: python
 
     arc_inverted(rad=10, start_degrees=0, end_degrees=90) 
 
 draws the portion of a 10x10 square NOT in a 90 degree circle of radius
 10. This is the shape you need to add to make fillets or remove to make
 rounds.
-
-Offsets
--------
-
-To offset a set of points in one direction or another (inside or outside
-a closed figure, for example) use
-``solid.utils.offset_points(point_arr, offset, inside=True)``
-
-Note that, for a non-convex figure, inside and outside may be
-non-intuitive. The simple solution is to manually check that your offset
-is going in the direction you intend, and change the boolean value of
-``inside`` if you're not happy.
-
-See the code for futher explanation. Improvements on the inside/outside
-algorithm would be welcome.
 
 Extrude Along Path
 ------------------
@@ -347,39 +385,6 @@ Extrude Along Path
 See
 `solid/examples/path_extrude_example.py <https://github.com/SolidCode/SolidPython/blob/master/solid/examples/path_extrude_example.py>`__
 for use.
-
-Basic color library
--------------------
-
-You can change an object's color by using the OpenSCAD
-``color([rgba_array])`` function:
-
-::
-
-    transparent_blue = color([0,0,1, 0.5])(cube(10))  # Specify with RGB[A]
-    red_obj = color(Red)(cube(10))                    # Or use predefined colors
-
-These colors are pre-defined in solid.utils:
-
-+------------+---------+--------------+
-| Red        | Green   |  Blue        |
-+------------+---------+--------------+
-| Cyan       | Magenta |  Yellow      |
-+------------+---------+--------------+
-| Black      | White   |  Transparent |
-+------------+---------+--------------+
-| Oak        | Pine    |  Birch       |
-+------------+---------+--------------+
-| Iron       | Steel   |  Stainless   |
-+------------+---------+--------------+
-| Aluminum   | Brass   |  BlackPaint  |
-+------------+---------+--------------+
-| FiberBoard |         |              |
-+------------+---------+--------------+
-
-They're a conversion of the materials in the `MCAD OpenSCAD
-library <https://github.com/openscad/MCAD>`__, as seen [here]
-(https://github.com/openscad/MCAD/blob/master/materials.scad).
 
 Bill Of Materials
 -----------------
@@ -401,6 +406,38 @@ external screw threads.
 See
 `solid/examples/screw_thread_example.py <https://github.com/SolidCode/SolidPython/blob/master/solid/examples/screw_thread_example.py>`__
 for more details.
+
+solid.splines
+-------------
+
+`solid.splines` contains functions to generate smooth Catmull-Rom curves through
+control points. 
+
+::
+
+    from solid import translate
+    from solid.splines import catmull_rom_polygon, bezier_polygon
+    from euclid3 import Point2
+
+    points = [ Point2(0,0), Point2(1,1), Point2(2,1), Point2(2,-1) ]  
+    shape = catmull_rom_polygon(points, show_controls=True)
+
+    bezier_shape = translate([3,0,0])(bezier_polygon(points, subdivisions=20))
+    
+See 
+`solid/examples/splines_example.py <https://github.com/SolidCode/SolidPython/blob/master/solid/examples/splines_example.py>`__ 
+for more details and options.
+
+Jupyter Renderer
+----------------
+
+Render SolidPython or OpenSCAD code in Jupyter notebooks using `ViewSCAD <https://github.com/nickc92/ViewSCAD>`__, or install directly via:
+
+.. code:: bash
+
+    pip install viewscad
+
+(Take a look at the `repo page <https://github.com/nickc92/ViewSCAD>`__, though, since there's a tiny bit more installation required)
 
 Contact
 =======
